@@ -1,0 +1,600 @@
+openapi: 3.0.3
+info:
+  title: Claude.ai Web API
+  description: Unofficial API for Claude.ai web interface (session-based authentication)
+  version: 1.0.0
+  contact:
+    name: Reverse Engineered API
+    url: https://github.com/jahwag/claude-api-unofficial
+
+servers:
+  - url: https://api.claude.ai/api
+    description: Claude.ai web API server
+
+security:
+  - SessionAuth: []
+
+paths:
+  /organizations:
+    get:
+      summary: List Organizations
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organization'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /organizations/{organization_id}:
+    get:
+      summary: Get Organization Details
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+
+  /organizations/{organization_id}/projects:
+    get:
+      summary: List Projects
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+
+    post:
+      summary: Create Project
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+  /organizations/{organization_id}/projects/{project_id}:
+    put:
+      summary: Update Project
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+  /organizations/{organization_id}/projects/{project_id}/docs:
+    get:
+      summary: List Project Files
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectFile'
+
+    post:
+      summary: Upload File
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileUploadRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectFile'
+
+  /organizations/{organization_id}/projects/{project_id}/docs/{file_uuid}:
+    delete:
+      summary: Delete File
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: file_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: No content
+        '404':
+          description: Not found
+
+  /organizations/{organization_id}/chat_conversations:
+    get:
+      summary: List Chat Conversations
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatConversation'
+
+    post:
+      summary: Create Chat Conversation
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatConversation'
+
+  /organizations/{organization_id}/chat_conversations/{conversation_id}:
+    get:
+      summary: Get Chat Conversation
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: rendering_mode
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [raw, formatted]
+            default: formatted
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatConversationDetail'
+
+  /organizations/{organization_id}/chat_conversations/delete_many:
+    post:
+      summary: Delete Multiple Chats
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteChatsRequest'
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad request
+
+  /organizations/{organization_id}/chat_conversations/{chat_id}/completion:
+    post:
+      summary: Send Message (Streaming)
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE stream
+
+  /organizations/{organization_id}/published_artifacts:
+    get:
+      summary: Get Published Artifacts
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublishedArtifact'
+
+components:
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: sessionKey
+      description: Browser session key
+
+  schemas:
+    Organization:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        settings:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Project:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateProjectRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ProjectFile:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        file_name:
+          type: string
+        file_type:
+          type: string
+        file_size:
+          type: integer
+        content:
+          type: string
+          description: Content for text files
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FileUploadRequest:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+        name:
+          type: string
+          description: Custom name
+
+    ChatConversation:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        summary:
+          type: string
+        model:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ChatConversationDetail:
+      allOf:
+        - $ref: '#/components/schemas/ChatConversation'
+        - type: object
+          properties:
+            chat_messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChatMessage'
+
+    ChatMessage:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        text:
+          type: string
+        sender:
+          type: string
+          enum: [human, assistant]
+        index:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateChatRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        model:
+          type: string
+          default: "claude-3-5-sonnet-20241022"
+
+    ChatCompletionRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          description: Message text
+        model:
+          type: string
+          description: Model
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              file_uuid:
+                type: string
+                format: uuid
+              file_name:
+                type: string
+        timezone:
+          type: string
+          default: "America/New_York"
+
+    DeleteChatsRequest:
+      type: object
+      required:
+        - uuids
+      properties:
+        uuids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+
+    PublishedArtifact:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        content_type:
+          type: string
+        url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object

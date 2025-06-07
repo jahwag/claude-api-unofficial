@@ -1,0 +1,344 @@
+openapi: 3.0.3
+info:
+  title: Claude Code CLI API
+  description: OAuth 2.0 API for Claude CLI
+  version: 1.0.0
+
+servers:
+  - url: https://api.anthropic.com
+    description: Main API
+  - url: https://console.anthropic.com
+    description: OAuth services
+  - url: https://claude.ai
+    description: Authorization
+
+security:
+  - BearerAuth: []
+
+paths:
+  /oauth/authorize:
+    get:
+      summary: OAuth Authorization
+      security: []
+      servers:
+        - url: https://claude.ai
+      parameters:
+        - name: client_id
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+        - name: response_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [code]
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "http://localhost:54545/callback"
+        - name: scope
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "org:create_api_key user:profile user:inference"
+        - name: code_challenge
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: code_challenge_method
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [S256]
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: boolean
+            example: true
+      responses:
+        '302':
+          description: Redirect
+
+  /v1/oauth/token:
+    post:
+      summary: Token Exchange
+      security: []
+      servers:
+        - url: https://console.anthropic.com
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+
+  /api/oauth/profile:
+    get:
+      summary: User Profile
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /api/oauth/claude_cli/roles:
+    get:
+      summary: User Roles
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRoles'
+
+  /api/hello:
+    get:
+      summary: Health Check
+      security: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "hello"
+
+  /v1/messages:
+    post:
+      summary: Send Message
+      parameters:
+        - name: beta
+          in: query
+          schema:
+            type: boolean
+            example: true
+        - name: anthropic-beta
+          in: header
+          schema:
+            type: string
+            example: "oauth-2025-04-20"
+        - name: anthropic-version
+          in: header
+          schema:
+            type: string
+            example: "2023-06-01"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            text/event-stream:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: "sk-ant-oat01-..."
+
+  schemas:
+    TokenRequest:
+      type: object
+      required:
+        - grant_type
+        - code
+        - redirect_uri
+        - client_id
+        - code_verifier
+        - state
+      properties:
+        grant_type:
+          type: string
+          enum: [authorization_code]
+        code:
+          type: string
+        redirect_uri:
+          type: string
+          example: "http://localhost:54545/callback"
+        client_id:
+          type: string
+          example: "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+        code_verifier:
+          type: string
+        state:
+          type: string
+
+    TokenResponse:
+      type: object
+      properties:
+        token_type:
+          type: string
+          example: "Bearer"
+        access_token:
+          type: string
+          example: "sk-ant-oat01-..."
+        expires_in:
+          type: integer
+          example: 28800
+        refresh_token:
+          type: string
+          example: "sk-ant-ort01-..."
+        scope:
+          type: string
+        organization:
+          $ref: '#/components/schemas/Organization'
+        account:
+          $ref: '#/components/schemas/Account'
+
+    Organization:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        organization_type:
+          type: string
+        billing_type:
+          type: string
+        rate_limit_tier:
+          type: string
+
+    Account:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        email_address:
+          type: string
+          format: email
+        full_name:
+          type: string
+        display_name:
+          type: string
+        has_claude_max:
+          type: boolean
+        has_claude_pro:
+          type: boolean
+
+    UserProfile:
+      type: object
+      properties:
+        account:
+          $ref: '#/components/schemas/Account'
+        organization:
+          $ref: '#/components/schemas/Organization'
+
+    UserRoles:
+      type: object
+      properties:
+        organization_uuid:
+          type: string
+          format: uuid
+        organization_name:
+          type: string
+        organization_role:
+          type: string
+        workspace_uuid:
+          type: string
+          format: uuid
+          nullable: true
+        workspace_name:
+          type: string
+          nullable: true
+        workspace_role:
+          type: string
+          nullable: true
+
+    MessageRequest:
+      type: object
+      required:
+        - model
+        - max_tokens
+        - messages
+      properties:
+        model:
+          type: string
+          example: "claude-3-5-haiku-20241022"
+        max_tokens:
+          type: integer
+          example: 512
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        metadata:
+          type: object
+          properties:
+            user_id:
+              type: string
+        stream:
+          type: boolean
+          default: false
+
+    Message:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+
+    MessageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        role:
+          type: string
+        content:
+          type: array
+          items:
+            type: object
+        model:
+          type: string
+        stop_reason:
+          type: string
+        usage:
+          type: object
