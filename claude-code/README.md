@@ -10,3 +10,5 @@ Anthropic API used by Claude Code.
 
 - `oauth-flow.md` - PKCE authentication flow
 - `endpoints.openapi.yaml` - API specification
+- `troubleshooting.md` - Common OAuth authentication issues and solutions
+- `system_message.md` - System messages used by Claude Code
